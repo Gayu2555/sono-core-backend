@@ -1,0 +1,179 @@
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ====================
+// VIDEO & SERIES MODELS
+// ====================
+
+model Video {
+  id           Int       @id @default(autoincrement())
+  title        String    @db.VarChar(255)    // <-- batasi eksplisit
+  description  String?   @db.Text
+  thumbnail    String?
+  api_url      String
+  type         VideoType
+  release_year Int?
+  duration     String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  
+  movie        Movie?
+  episodes     Episode[]
+  
+  @@map("videos")
+  @@index([title, description(length: 200)], name: "videos_search_idx") // <-- kurangi dari 768 ke ≤200
+}
+
+enum VideoType {
+  movie
+  episode
+}
+
+model Movie {
+  id        Int      @id @default(autoincrement())
+  video_id  Int      @unique
+  director  String?
+  cast      String?  @db.Text
+  genre     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  video     Video    @relation(fields: [video_id], references: [id], onDelete: Cascade)
+  
+  @@map("movies")
+}
+
+model Series {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?   @db.Text
+  thumbnail   String?
+  start_year  Int?
+  end_year    Int?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  episodes    Episode[]
+  
+  @@map("series")
+}
+
+model Episode {
+  id            Int      @id @default(autoincrement())
+  video_id      Int
+  series_id     Int
+  season_number Int
+  episode_number Int
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  video         Video    @relation(fields: [video_id], references: [id], onDelete: Cascade)
+  series        Series   @relation(fields: [series_id], references: [id], onDelete: Cascade)
+  
+  @@map("episodes")
+}
+
+// ====================
+// MUSIC & ARTIST MODELS
+// ====================
+
+model Artist {
+  id        Int      @id @default(autoincrement())
+  name      String
+  bio       String?  @db.Text
+  image     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  albums    Album[]
+  music     Music[]
+
+  @@map("artists")
+}
+
+model Album {
+  id          Int      @id @default(autoincrement())
+  title       String
+  artistId    Int      @map("artist_id")
+  releaseYear Int?     @map("release_year")
+  coverImage  String?  @map("cover_image")
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  artist      Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  music       Music[]
+
+  @@map("albums")
+}
+
+model Music {
+  id          Int         @id @default(autoincrement())
+  title       String
+  albumId     Int         @map("album_id")
+  artistId    Int         @map("artist_id")
+  duration    String?
+  genre       String?
+  apiUrl      String      @map("api_url")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  album       Album       @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  artist      Artist      @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  musicPlays  MusicPlay[]
+  playlists   PlaylistMusic[]
+
+  @@map("music")
+}
+
+model MusicPlay {
+  id        Int      @id @default(autoincrement())
+  musicId   Int      @map("music_id")
+  playedAt  DateTime @default(now()) @map("played_at")
+  ip        String?  @db.VarChar(45)
+  userId    Int?     @map("user_id")
+  device    String?  @db.VarChar(255)
+  
+  music     Music    @relation(fields: [musicId], references: [id], onDelete: Cascade)
+  
+  @@index([musicId])
+  @@index([playedAt])
+  @@map("music_plays")
+}
+
+model Playlist {
+  id          Int             @id @default(autoincrement())
+  title       String
+  description String?         @db.Text
+  userId      Int?            @map("user_id")
+  isPublic    Boolean         @default(false) @map("is_public")
+  coverImage  String?         @map("cover_image")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  music       PlaylistMusic[]
+
+  @@map("playlists")
+}
+
+model PlaylistMusic {
+  id          Int      @id @default(autoincrement())
+  playlistId  Int      @map("playlist_id")
+  musicId     Int      @map("music_id")
+  sortOrder   Int      @default(0) @map("sort_order")
+  addedAt     DateTime @default(now()) @map("added_at")
+  
+  playlist    Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  music       Music    @relation(fields: [musicId], references: [id], onDelete: Cascade)
+  
+  @@unique([playlistId, musicId])
+  @@index([playlistId])
+  @@index([musicId])
+  @@map("playlist_music")
+}
