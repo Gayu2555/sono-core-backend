@@ -1,11 +1,72 @@
-// schema.prisma
+// =====================
+// GENERATOR & DATASOURCE
+// =====================
+
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
+}
+
+// =====================
+// USER & INTERACTIONS
+// =====================
+
+model User {
+  id             Int             @id @default(autoincrement())
+  username       String          @unique
+  email          String          @unique
+  password       String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  favoritesMusic FavoriteMusic[]
+  favoritesVideo FavoriteVideo[]
+  history        History[]
+  googleId      String   @unique
+  picture       String?
+}
+
+model FavoriteMusic {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  musicId   Int
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  music     Music    @relation(fields: [musicId], references: [id], onDelete: Cascade)
+  
+  @@map("favorite_music")
+}
+
+model FavoriteVideo {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  videoId   Int
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  
+  @@map("favorite_video")
+}
+
+model History {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  musicId   Int?
+  videoId   Int?
+  playedAt  DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  music     Music?   @relation(fields: [musicId], references: [id])
+  video     Video?   @relation(fields: [videoId], references: [id])
+  
+  @@map("history")
 }
 
 // ====================
@@ -14,7 +75,7 @@ datasource db {
 
 model Video {
   id           Int       @id @default(autoincrement())
-  title        String    @db.VarChar(255)    // <-- batasi eksplisit
+  title        String    @db.VarChar(255)
   description  String?   @db.Text
   thumbnail    String?
   api_url      String
@@ -23,12 +84,14 @@ model Video {
   duration     String?
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
-  
-  movie        Movie?
-  episodes     Episode[]
+
+  movie           Movie?
+  episodes        Episode[]
+  favoritesVideo  FavoriteVideo[]
+  history         History[]
   
   @@map("videos")
-  @@index([title, description(length: 200)], name: "videos_search_idx") // <-- kurangi dari 768 ke ≤200
+  @@index([title, description(length: 200)], name: "videos_search_idx")
 }
 
 enum VideoType {
@@ -44,8 +107,7 @@ model Movie {
   genre     String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
-  // Relations
+
   video     Video    @relation(fields: [video_id], references: [id], onDelete: Cascade)
   
   @@map("movies")
@@ -59,26 +121,24 @@ model Series {
   start_year  Int?
   end_year    Int?
   createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  // Relations
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
   episodes    Episode[]
   
   @@map("series")
 }
 
 model Episode {
-  id            Int      @id @default(autoincrement())
-  video_id      Int
-  series_id     Int
-  season_number Int
+  id             Int      @id @default(autoincrement())
+  video_id       Int
+  series_id      Int
+  season_number  Int
   episode_number Int
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  video         Video    @relation(fields: [video_id], references: [id], onDelete: Cascade)
-  series        Series   @relation(fields: [series_id], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  video    Video  @relation(fields: [video_id], references: [id], onDelete: Cascade)
+  series   Series @relation(fields: [series_id], references: [id], onDelete: Cascade)
   
   @@map("episodes")
 }
@@ -94,9 +154,10 @@ model Artist {
   image     String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
   albums    Album[]
   music     Music[]
-
+  
   @@map("artists")
 }
 
@@ -109,9 +170,10 @@ model Album {
   description String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+
   artist      Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
   music       Music[]
-
+  
   @@map("albums")
 }
 
@@ -125,11 +187,15 @@ model Music {
   apiUrl      String      @map("api_url")
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
+
   album       Album       @relation(fields: [albumId], references: [id], onDelete: Cascade)
   artist      Artist      @relation(fields: [artistId], references: [id], onDelete: Cascade)
-  musicPlays  MusicPlay[]
-  playlists   PlaylistMusic[]
 
+  musicPlays     MusicPlay[]
+  playlists      PlaylistMusic[]
+  favoritesMusic FavoriteMusic[]
+  history        History[]
+  
   @@map("music")
 }
 
@@ -140,9 +206,9 @@ model MusicPlay {
   ip        String?  @db.VarChar(45)
   userId    Int?     @map("user_id")
   device    String?  @db.VarChar(255)
-  
+
   music     Music    @relation(fields: [musicId], references: [id], onDelete: Cascade)
-  
+
   @@index([musicId])
   @@index([playedAt])
   @@map("music_plays")
@@ -157,8 +223,9 @@ model Playlist {
   coverImage  String?         @map("cover_image")
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
-  music       PlaylistMusic[]
 
+  music       PlaylistMusic[]
+  
   @@map("playlists")
 }
 
@@ -168,12 +235,13 @@ model PlaylistMusic {
   musicId     Int      @map("music_id")
   sortOrder   Int      @default(0) @map("sort_order")
   addedAt     DateTime @default(now()) @map("added_at")
-  
+
   playlist    Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   music       Music    @relation(fields: [musicId], references: [id], onDelete: Cascade)
-  
+
   @@unique([playlistId, musicId])
   @@index([playlistId])
   @@index([musicId])
+  
   @@map("playlist_music")
 }
