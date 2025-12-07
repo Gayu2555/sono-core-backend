@@ -114,33 +114,6 @@ function verifyToken(token: string): { valid: boolean; payload?: any; error?: st
 
 export const userService = new Elysia({ prefix: "/users" })
     // =====================
-    // GET ALL USERS
-    // =====================
-    .get("/", async ({ query }) => {
-        logRequest("GET", "/users", query);
-        try {
-            const { skip, take, page, limit } = parsePagination({
-                page: Number(query.page), limit: Number(query.limit),
-            });
-
-            logDbOperation("READ", "User", `Fetching page ${page}`);
-            const totalItems = await prisma.user.count();
-            const users = await prisma.user.findMany({
-                skip, take,
-                orderBy: { createdAt: "desc" },
-                select: { id: true, username: true, email: true, picture: true, createdAt: true },
-            });
-            console.log(`✅ [User] Retrieved ${users.length} users`);
-            return successResponse("Users retrieved", users, createPaginationMeta(totalItems, page, limit));
-        } catch (error) {
-            return errorResponse("Failed to fetch users", error instanceof Error ? error.message : "Unknown");
-        }
-    }, {
-        query: t.Object({ page: t.Optional(t.String()), limit: t.Optional(t.String()) }),
-        detail: { tags: ["Users"], summary: "Get all users" },
-    })
-
-    // =====================
     // GET USER BY ID
     // =====================
     .get("/:id", async ({ params }) => {
