@@ -147,18 +147,30 @@ export const userService = new Elysia({ prefix: "/users" })
     })
 
     // =====================
-    // LOGIN USER
+    // LOGIN USER (via email or username)
     // =====================
     .post("/login", async ({ body, set }) => {
-        logRequest("POST", "/users/login", { email: body.email, password: "[HIDDEN]" });
+        logRequest("POST", "/users/login", { username: body.username, password: "[HIDDEN]" });
         try {
-            const { email, password } = body;
+            const { username, password } = body;
 
-            if (!email?.trim()) return errorResponse("Email required");
+            if (!username?.trim()) return errorResponse("Email or username required");
             if (!password) return errorResponse("Password required");
 
-            const user = await prisma.user.findUnique({
-                where: { email: email.trim().toLowerCase() },
+            const trimmedInput = username.trim().toLowerCase();
+
+            // Check if input is email or username
+            const isEmail = trimmedInput.includes("@");
+
+            const user = await prisma.user.findFirst({
+                where: isEmail
+                    ? { email: trimmedInput }
+                    : {
+                        OR: [
+                            { username: trimmedInput },
+                            { username: username.trim() }, // Also try original case
+                        ]
+                    },
             });
 
             if (!user) {
@@ -180,8 +192,8 @@ export const userService = new Elysia({ prefix: "/users" })
             return errorResponse("Login failed", error instanceof Error ? error.message : "Unknown");
         }
     }, {
-        body: t.Object({ email: t.String(), password: t.String() }),
-        detail: { tags: ["Users"], summary: "Login user" },
+        body: t.Object({ username: t.String(), password: t.String() }),
+        detail: { tags: ["Users"], summary: "Login user with email or username" },
     })
 
     // =====================

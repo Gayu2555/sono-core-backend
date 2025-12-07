@@ -206,7 +206,7 @@ const app = new Elysia()
   .use(favoriteService)
   .use(historyService)
 
-  .listen(3000);
+  .listen(3755);
 
 console.log(`\n🎵 Server berjalan di http://${app.server?.hostname}:${app.server?.port}`);
 console.log(`📚 Swagger docs: http://${app.server?.hostname}:${app.server?.port}/swagger`);
