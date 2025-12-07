@@ -1,8 +1,4 @@
-/**
- * Series Service
- * ===============
- * CRUD operations untuk Series entity.
- */
+
 //Kita kasih dikit dikit biar ada perubahan sedikit
 
 import { Elysia, t } from "elysia";
