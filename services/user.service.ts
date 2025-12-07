@@ -11,6 +11,10 @@ import {
     parsePagination, createPaginationMeta, parseId,
 } from "../utils/helpers";
 
+// JWT Configuration
+const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production";
+const JWT_EXPIRES_IN = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+
 // Google OAuth2 Configuration
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
@@ -51,6 +55,61 @@ async function hashPassword(password: string): Promise<string> {
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
     const inputHash = await hashPassword(password);
     return inputHash === hash;
+}
+
+// JWT Token Generation
+function generateToken(user: { id: number; username: string; email: string }): string {
+    const header = { alg: "HS256", typ: "JWT" };
+    const payload = {
+        sub: user.id,
+        username: user.username,
+        email: user.email,
+        iat: Date.now(),
+        exp: Date.now() + JWT_EXPIRES_IN,
+    };
+
+    const base64Header = btoa(JSON.stringify(header)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    const base64Payload = btoa(JSON.stringify(payload)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+
+    const signatureInput = `${base64Header}.${base64Payload}`;
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(JWT_SECRET);
+    const messageData = encoder.encode(signatureInput);
+
+    // Simple HMAC-like signature using SHA-256
+    const combined = new Uint8Array(keyData.length + messageData.length);
+    combined.set(keyData);
+    combined.set(messageData, keyData.length);
+
+    let hash = 0;
+    for (let i = 0; i < combined.length; i++) {
+        hash = ((hash << 5) - hash) + combined[i]!;
+        hash = hash & hash;
+    }
+    const signature = btoa(hash.toString()).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+
+    return `${base64Header}.${base64Payload}.${signature}`;
+}
+
+function verifyToken(token: string): { valid: boolean; payload?: any; error?: string } {
+    try {
+        const parts = token.split(".");
+        if (parts.length !== 3) return { valid: false, error: "Invalid token format" };
+
+        const payloadPart = parts[1];
+        if (!payloadPart) return { valid: false, error: "Invalid token format" };
+
+        const payloadStr = atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/"));
+        const payload = JSON.parse(payloadStr);
+
+        if (!payload || typeof payload.exp !== "number" || payload.exp < Date.now()) {
+            return { valid: false, error: "Token expired" };
+        }
+
+        return { valid: true, payload };
+    } catch (error) {
+        return { valid: false, error: "Invalid token" };
+    }
 }
 
 export const userService = new Elysia({ prefix: "/users" })
@@ -135,8 +194,9 @@ export const userService = new Elysia({ prefix: "/users" })
                 select: { id: true, username: true, email: true, createdAt: true },
             });
 
+            const token = generateToken(user);
             console.log(`✅ [User] Registered: ${user.username} (ID: ${user.id})`);
-            return successResponse("Registration successful", { user });
+            return successResponse("Registration successful", { user, token, expiresIn: JWT_EXPIRES_IN });
         } catch (error) {
             console.error("❌ [User] Registration error:", error);
             return errorResponse("Registration failed", error instanceof Error ? error.message : "Unknown");
@@ -184,9 +244,12 @@ export const userService = new Elysia({ prefix: "/users" })
                 return errorResponse("Invalid credentials", "Wrong password");
             }
 
+            const token = generateToken({ id: user.id, username: user.username, email: user.email });
             console.log(`✅ [User] Login successful: ${user.username}`);
             return successResponse("Login successful", {
                 user: { id: user.id, username: user.username, email: user.email, picture: user.picture },
+                token,
+                expiresIn: JWT_EXPIRES_IN,
             });
         } catch (error) {
             return errorResponse("Login failed", error instanceof Error ? error.message : "Unknown");
