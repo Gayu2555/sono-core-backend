@@ -7,7 +7,7 @@
 import { Elysia, t } from "elysia";
 import { existsSync, mkdirSync, unlinkSync, writeFileSync, readFileSync } from "fs";
 import { join, extname } from "path";
-import { logRequest, logDbOperation, successResponse, errorResponse, IMAGES_PATH } from "../utils/helpers";
+import { logRequest, logDbOperation, successResponse, errorResponse, IMAGES_PATH, ALBUM_COVERS_PATH } from "../utils/helpers";
 
 // Ensure images directory exists
 if (!existsSync(IMAGES_PATH)) {
@@ -133,6 +133,57 @@ export const imageService = new Elysia({ prefix: "/images" })
             tags: ["Images"],
             summary: "Get image",
             description: "Get an uploaded image by filename",
+        },
+    })
+
+    // =====================
+    // GET ALBUM COVER FROM LARAVEL STORAGE
+    // =====================
+    .get("/albums/:filename", async ({ params, set }) => {
+        logRequest("GET", `/images/albums/${params.filename}`);
+
+        try {
+            const filename = params.filename;
+            const filepath = join(ALBUM_COVERS_PATH, filename);
+
+            if (!existsSync(filepath)) {
+                console.warn(`⚠️ [Image] Album cover not found: ${filename}`);
+                set.status = 404;
+                return errorResponse("Album cover not found");
+            }
+
+            console.log(`📥 [Image] Serving album cover: ${filename}`);
+
+            const file = readFileSync(filepath);
+            const ext = extname(filename).toLowerCase();
+
+            // Set content type
+            const mimeTypes: Record<string, string> = {
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+                ".svg": "image/svg+xml",
+            };
+
+            set.headers = {
+                "Content-Type": mimeTypes[ext] || "application/octet-stream",
+                "Cache-Control": "public, max-age=31536000",
+            };
+
+            return file;
+        } catch (error) {
+            console.error(`❌ [Image] Get album cover error:`, error);
+            set.status = 500;
+            return errorResponse("Failed to get album cover", error instanceof Error ? error.message : "Unknown");
+        }
+    }, {
+        params: t.Object({ filename: t.String() }),
+        detail: {
+            tags: ["Images"],
+            summary: "Get album cover",
+            description: "Get an album cover image from Laravel dashboard storage",
         },
     })
 
