@@ -21,7 +21,7 @@ export const PUBLIC_PATH = join(process.cwd(), "public");
 export const IMAGES_PATH = join(PUBLIC_PATH, "images");
 
 /** Path untuk cover album dari Laravel dashboard */
-export const ALBUM_COVERS_PATH = "/dashboard/sono---dashboard/storage/app/public/albums";
+export const ALBUM_COVERS_PATH = "/home/gayu123/dashboard/sono---dashboard/storage/app/public/albums";
 
 /** Default pagination limit */
 export const DEFAULT_PAGE_SIZE = 10;
