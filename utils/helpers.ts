@@ -261,14 +261,14 @@ export function generateSlug(str: string): string {
 export function formatAlbumCoverUrl(filename: string | null | undefined): string | null {
     if (!filename) return null;
     // Jika sudah berupa URL lengkap, kembalikan apa adanya
-    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/api/')) {
+    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/images/')) {
         return filename;
     }
     // Jika sudah ada prefix folder, gunakan base path saja
     if (filename.includes('/')) {
-        return `/api/images/${filename}`;
+        return `/images/${filename}`;
     }
-    return `/api/images/albums/${filename}`;
+    return `/images/albums/${filename}`;
 }
 
 /**
@@ -278,14 +278,14 @@ export function formatAlbumCoverUrl(filename: string | null | undefined): string
  */
 export function formatArtistImageUrl(filename: string | null | undefined): string | null {
     if (!filename) return null;
-    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/api/')) {
+    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/images/')) {
         return filename;
     }
     // Jika sudah ada prefix folder, gunakan base path saja
     if (filename.includes('/')) {
-        return `/api/images/${filename}`;
+        return `/images/${filename}`;
     }
-    return `/api/images/artists/${filename}`;
+    return `/images/artists/${filename}`;
 }
 
 /**
@@ -295,14 +295,14 @@ export function formatArtistImageUrl(filename: string | null | undefined): strin
  */
 export function formatSeriesThumbnailUrl(filename: string | null | undefined): string | null {
     if (!filename) return null;
-    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/api/')) {
+    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/images/')) {
         return filename;
     }
     // Jika sudah ada prefix folder, gunakan base path saja
     if (filename.includes('/')) {
-        return `/api/images/${filename}`;
+        return `/images/${filename}`;
     }
-    return `/api/images/series/${filename}`;
+    return `/images/series/${filename}`;
 }
 
 /**
@@ -312,12 +312,12 @@ export function formatSeriesThumbnailUrl(filename: string | null | undefined): s
  */
 export function formatVideoThumbnailUrl(filename: string | null | undefined): string | null {
     if (!filename) return null;
-    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/api/')) {
+    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/images/')) {
         return filename;
     }
     // Jika sudah ada prefix folder, gunakan base path saja
     if (filename.includes('/')) {
-        return `/api/images/${filename}`;
+        return `/images/${filename}`;
     }
-    return `/api/images/videos/${filename}`;
+    return `/images/videos/${filename}`;
 }
