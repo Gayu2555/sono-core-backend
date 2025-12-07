@@ -408,7 +408,7 @@ export const authService = new Elysia({ prefix: "/auth" })
         }),
         detail: { tags: ["Auth"], summary: "Google OAuth2 callback", description: "Handles Google OAuth2 redirect" },
     })
-
+    // ala ala kasih sedikit perubahan kecil
     // Check auth status
     .get("/me", async ({ request }) => {
         logRequest("GET", "/auth/me");
