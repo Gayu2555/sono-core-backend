@@ -22,6 +22,8 @@ import {
     parsePagination,
     createPaginationMeta,
     parseId,
+    formatAlbumCoverUrl,
+    formatArtistImageUrl,
 } from "../utils/helpers";
 import type { CreateAlbumRequest, UpdateAlbumRequest } from "../types";
 
@@ -71,7 +73,14 @@ export const albumService = new Elysia({ prefix: "/albums" })
 
                 const meta = createPaginationMeta(totalItems, page, limit);
 
-                return successResponse("Albums retrieved successfully", albums, meta);
+                // Transform image URLs
+                const transformedAlbums = albums.map(a => ({
+                    ...a,
+                    coverImage: formatAlbumCoverUrl(a.coverImage),
+                    artist: a.artist ? { ...a.artist, image: formatArtistImageUrl(a.artist.image) } : null,
+                }));
+
+                return successResponse("Albums retrieved successfully", transformedAlbums, meta);
             } catch (error) {
                 console.error("❌ [Album] Error fetching albums:", error);
                 const message = error instanceof Error ? error.message : "Unknown error";
@@ -135,7 +144,14 @@ export const albumService = new Elysia({ prefix: "/albums" })
 
                 console.log(`✅ [Album] Found album: ${album.title} (ID: ${id})`);
 
-                return successResponse("Album retrieved successfully", album);
+                // Transform image URLs
+                const transformedAlbum = {
+                    ...album,
+                    coverImage: formatAlbumCoverUrl(album.coverImage),
+                    artist: album.artist ? { ...album.artist, image: formatArtistImageUrl(album.artist.image) } : null,
+                };
+
+                return successResponse("Album retrieved successfully", transformedAlbum);
             } catch (error) {
                 console.error(`❌ [Album] Error fetching album ${id}:`, error);
                 const message = error instanceof Error ? error.message : "Unknown error";

@@ -5,7 +5,7 @@ import { Elysia, t } from "elysia";
 import prisma from "../utils/prisma";
 import {
     logRequest, logDbOperation, successResponse, errorResponse,
-    parsePagination, createPaginationMeta, parseId,
+    parsePagination, createPaginationMeta, parseId, formatSeriesThumbnailUrl, formatVideoThumbnailUrl,
 } from "../utils/helpers";
 
 export const seriesService = new Elysia({ prefix: "/series" })
@@ -27,7 +27,12 @@ export const seriesService = new Elysia({ prefix: "/series" })
                 include: { _count: { select: { episodes: true } } },
             });
             console.log(`✅ [Series] Retrieved ${series.length} series`);
-            return successResponse("Series retrieved", series, createPaginationMeta(totalItems, page, limit));
+            // Transform thumbnail URLs
+            const transformedSeries = series.map(s => ({
+                ...s,
+                thumbnail: formatSeriesThumbnailUrl(s.thumbnail),
+            }));
+            return successResponse("Series retrieved", transformedSeries, createPaginationMeta(totalItems, page, limit));
         } catch (error) {
             console.error("❌ [Series] Error:", error);
             return errorResponse("Failed to fetch series", error instanceof Error ? error.message : "Unknown");
@@ -57,7 +62,16 @@ export const seriesService = new Elysia({ prefix: "/series" })
             });
             if (!series) return errorResponse("Series not found");
             console.log(`✅ [Series] Found: ${series.title}`);
-            return successResponse("Series retrieved", series);
+            // Transform thumbnail URLs
+            const transformedSeries = {
+                ...series,
+                thumbnail: formatSeriesThumbnailUrl(series.thumbnail),
+                episodes: series.episodes.map(ep => ({
+                    ...ep,
+                    video: ep.video ? { ...ep.video, thumbnail: formatVideoThumbnailUrl(ep.video.thumbnail) } : null,
+                })),
+            };
+            return successResponse("Series retrieved", transformedSeries);
         } catch (error) {
             return errorResponse("Failed to fetch series", error instanceof Error ? error.message : "Unknown");
         }
@@ -152,7 +166,12 @@ export const seriesService = new Elysia({ prefix: "/series" })
                 include: { video: { select: { id: true, title: true, thumbnail: true, duration: true, api_url: true } } },
             });
             console.log(`✅ [Series] Found ${episodes.length} episodes for: ${series.title}`);
-            return successResponse(`Episodes for ${series.title}`, episodes, createPaginationMeta(totalItems, page, limit));
+            // Transform thumbnail URLs
+            const transformedEpisodes = episodes.map(ep => ({
+                ...ep,
+                video: ep.video ? { ...ep.video, thumbnail: formatVideoThumbnailUrl(ep.video.thumbnail) } : null,
+            }));
+            return successResponse(`Episodes for ${series.title}`, transformedEpisodes, createPaginationMeta(totalItems, page, limit));
         } catch (error) {
             return errorResponse("Failed to fetch episodes", error instanceof Error ? error.message : "Unknown");
         }

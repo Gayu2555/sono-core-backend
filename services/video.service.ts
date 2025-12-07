@@ -8,7 +8,7 @@ import { Elysia, t } from "elysia";
 import prisma from "../utils/prisma";
 import {
     logRequest, logDbOperation, successResponse, errorResponse,
-    parsePagination, createPaginationMeta, parseId,
+    parsePagination, createPaginationMeta, parseId, formatVideoThumbnailUrl,
 } from "../utils/helpers";
 
 export const videoService = new Elysia({ prefix: "/videos" })
@@ -39,7 +39,12 @@ export const videoService = new Elysia({ prefix: "/videos" })
                 },
             });
             console.log(`✅ [Video] Retrieved ${videos.length} videos`);
-            return successResponse("Videos retrieved", videos, createPaginationMeta(totalItems, page, limit));
+            // Transform thumbnail URLs
+            const transformedVideos = videos.map(v => ({
+                ...v,
+                thumbnail: formatVideoThumbnailUrl(v.thumbnail),
+            }));
+            return successResponse("Videos retrieved", transformedVideos, createPaginationMeta(totalItems, page, limit));
         } catch (error) {
             console.error("❌ [Video] Error:", error);
             return errorResponse("Failed to fetch videos", error instanceof Error ? error.message : "Unknown");
@@ -76,7 +81,12 @@ export const videoService = new Elysia({ prefix: "/videos" })
                 include: { movie: true },
             });
             console.log(`🔍 [Video] Search "${searchQuery}" found ${videos.length} results`);
-            return successResponse(`Search results for "${searchQuery}"`, videos, createPaginationMeta(totalItems, page, limit));
+            // Transform thumbnail URLs
+            const transformedVideos = videos.map(v => ({
+                ...v,
+                thumbnail: formatVideoThumbnailUrl(v.thumbnail),
+            }));
+            return successResponse(`Search results for "${searchQuery}"`, transformedVideos, createPaginationMeta(totalItems, page, limit));
         } catch (error) {
             return errorResponse("Search failed", error instanceof Error ? error.message : "Unknown");
         }
@@ -99,7 +109,12 @@ export const videoService = new Elysia({ prefix: "/videos" })
             });
             if (!video) return errorResponse("Video not found");
             console.log(`✅ [Video] Found: ${video.title}`);
-            return successResponse("Video retrieved", video);
+            // Transform thumbnail URL
+            const transformedVideo = {
+                ...video,
+                thumbnail: formatVideoThumbnailUrl(video.thumbnail),
+            };
+            return successResponse("Video retrieved", transformedVideo);
         } catch (error) {
             return errorResponse("Failed to fetch video", error instanceof Error ? error.message : "Unknown");
         }

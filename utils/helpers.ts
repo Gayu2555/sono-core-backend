@@ -20,8 +20,20 @@ export const PUBLIC_PATH = join(process.cwd(), "public");
 /** Path untuk menyimpan gambar */
 export const IMAGES_PATH = join(PUBLIC_PATH, "images");
 
+/** Base path untuk Laravel dashboard storage */
+export const LARAVEL_STORAGE_PATH = "/home/gayu123/dashboard/sono---dashboard/storage/app/public";
+
 /** Path untuk cover album dari Laravel dashboard */
-export const ALBUM_COVERS_PATH = "/home/gayu123/dashboard/sono---dashboard/storage/app/public/albums";
+export const ALBUM_COVERS_PATH = `${LARAVEL_STORAGE_PATH}/albums`;
+
+/** Path untuk gambar artist dari Laravel dashboard */
+export const ARTIST_IMAGES_PATH = `${LARAVEL_STORAGE_PATH}/artists`;
+
+/** Path untuk thumbnail series dari Laravel dashboard */
+export const SERIES_THUMBNAILS_PATH = `${LARAVEL_STORAGE_PATH}/series`;
+
+/** Path untuk thumbnail video dari Laravel dashboard */
+export const VIDEO_THUMBNAILS_PATH = `${LARAVEL_STORAGE_PATH}/videos`;
 
 /** Default pagination limit */
 export const DEFAULT_PAGE_SIZE = 10;
@@ -235,4 +247,77 @@ export function generateSlug(str: string): string {
         .replace(/[^\w\s-]/g, "")
         .replace(/[\s_-]+/g, "-")
         .replace(/^-+|-+$/g, "");
+}
+
+// =====================
+// IMAGE URL FUNCTIONS
+// =====================
+
+/**
+ * Format album cover image URL
+ * @param filename - Nama file gambar atau null
+ * @returns URL lengkap untuk image endpoint atau null
+ */
+export function formatAlbumCoverUrl(filename: string | null | undefined): string | null {
+    if (!filename) return null;
+    // Jika sudah berupa URL lengkap, kembalikan apa adanya
+    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/api/')) {
+        return filename;
+    }
+    // Jika sudah ada prefix folder, gunakan base path saja
+    if (filename.includes('/')) {
+        return `/api/images/${filename}`;
+    }
+    return `/api/images/albums/${filename}`;
+}
+
+/**
+ * Format artist image URL
+ * @param filename - Nama file gambar atau null
+ * @returns URL lengkap untuk image endpoint atau null
+ */
+export function formatArtistImageUrl(filename: string | null | undefined): string | null {
+    if (!filename) return null;
+    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/api/')) {
+        return filename;
+    }
+    // Jika sudah ada prefix folder, gunakan base path saja
+    if (filename.includes('/')) {
+        return `/api/images/${filename}`;
+    }
+    return `/api/images/artists/${filename}`;
+}
+
+/**
+ * Format series thumbnail URL
+ * @param filename - Nama file gambar atau null
+ * @returns URL lengkap untuk image endpoint atau null
+ */
+export function formatSeriesThumbnailUrl(filename: string | null | undefined): string | null {
+    if (!filename) return null;
+    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/api/')) {
+        return filename;
+    }
+    // Jika sudah ada prefix folder, gunakan base path saja
+    if (filename.includes('/')) {
+        return `/api/images/${filename}`;
+    }
+    return `/api/images/series/${filename}`;
+}
+
+/**
+ * Format video thumbnail URL
+ * @param filename - Nama file gambar atau null
+ * @returns URL lengkap untuk image endpoint atau null
+ */
+export function formatVideoThumbnailUrl(filename: string | null | undefined): string | null {
+    if (!filename) return null;
+    if (filename.startsWith('http://') || filename.startsWith('https://') || filename.startsWith('/api/')) {
+        return filename;
+    }
+    // Jika sudah ada prefix folder, gunakan base path saja
+    if (filename.includes('/')) {
+        return `/api/images/${filename}`;
+    }
+    return `/api/images/videos/${filename}`;
 }

@@ -14,6 +14,8 @@ import {
     parsePagination,
     createPaginationMeta,
     parseId,
+    formatAlbumCoverUrl,
+    formatArtistImageUrl,
 } from "../utils/helpers";
 
 export const musicService = new Elysia({ prefix: "/music" })
@@ -44,7 +46,13 @@ export const musicService = new Elysia({ prefix: "/music" })
                     _count: { select: { musicPlays: true } },
                 },
             });
-            return successResponse("Music retrieved", music, createPaginationMeta(totalItems, page, limit));
+            // Transform image URLs
+            const transformedMusic = music.map(m => ({
+                ...m,
+                artist: m.artist ? { ...m.artist, image: formatArtistImageUrl(m.artist.image) } : null,
+                album: m.album ? { ...m.album, coverImage: formatAlbumCoverUrl(m.album.coverImage) } : null,
+            }));
+            return successResponse("Music retrieved", transformedMusic, createPaginationMeta(totalItems, page, limit));
         } catch (error) {
             return errorResponse("Failed to fetch music", error instanceof Error ? error.message : "Unknown");
         }

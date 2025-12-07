@@ -23,6 +23,8 @@ import {
     parsePagination,
     createPaginationMeta,
     parseId,
+    formatArtistImageUrl,
+    formatAlbumCoverUrl,
 } from "../utils/helpers";
 import type { CreateArtistRequest, UpdateArtistRequest } from "../types";
 
@@ -66,7 +68,13 @@ export const artistService = new Elysia({ prefix: "/artists" })
 
                 const meta = createPaginationMeta(totalItems, page, limit);
 
-                return successResponse("Artists retrieved successfully", artists, meta);
+                // Transform image URLs
+                const transformedArtists = artists.map(a => ({
+                    ...a,
+                    image: formatArtistImageUrl(a.image),
+                }));
+
+                return successResponse("Artists retrieved successfully", transformedArtists, meta);
             } catch (error) {
                 console.error("❌ [Artist] Error fetching artists:", error);
                 const message = error instanceof Error ? error.message : "Unknown error";
@@ -129,7 +137,14 @@ export const artistService = new Elysia({ prefix: "/artists" })
 
                 console.log(`✅ [Artist] Found artist: ${artist.name} (ID: ${id})`);
 
-                return successResponse("Artist retrieved successfully", artist);
+                // Transform image URLs
+                const transformedArtist = {
+                    ...artist,
+                    image: formatArtistImageUrl(artist.image),
+                    albums: artist.albums.map(a => ({ ...a, coverImage: formatAlbumCoverUrl(a.coverImage) })),
+                };
+
+                return successResponse("Artist retrieved successfully", transformedArtist);
             } catch (error) {
                 console.error(`❌ [Artist] Error fetching artist ${id}:`, error);
                 const message = error instanceof Error ? error.message : "Unknown error";
