@@ -1,15 +1,14 @@
 /**
  * Search Service
  * ===============
- * Unified search untuk Music dan Video.
+ * Unified search untuk Music, Video, dan Series.
  * 
  * Endpoints:
- * - GET /search           - Search semua (music + video)
+ * - GET /search           - Search semua (music + video + series)
  * - GET /search/music     - Search music saja
  * - GET /search/video     - Search video saja
+ * - GET /search/series    - Search series saja
  */
-
-//test perubahan deh
 
 import { Elysia, t } from "elysia";
 import prisma from "../utils/prisma";
@@ -23,6 +22,7 @@ import {
     formatAlbumCoverUrl,
     formatArtistImageUrl,
     formatVideoThumbnailUrl,
+    formatSeriesThumbnailUrl,
 } from "../utils/helpers";
 
 export const searchService = new Elysia({ prefix: "/search" })
@@ -111,8 +111,38 @@ export const searchService = new Elysia({ prefix: "/search" })
                 }
             }
 
-            const totalItems = musicTotal + videoTotal;
-            console.log(`🔍 [Search] "${searchQuery}" found ${musicResults.length} music + ${videoResults.length} video`);
+            // Search Series
+            let seriesResults: any[] = [];
+            let seriesTotal = 0;
+            if (query.type !== "music" && query.type !== "video") {
+                try {
+                    const seriesWhere = {
+                        OR: [
+                            { title: { contains: searchQuery } },
+                            { description: { contains: searchQuery } },
+                        ],
+                    };
+                    seriesTotal = await prisma.series.count({ where: seriesWhere });
+                    const rawSeries = await prisma.series.findMany({
+                        where: seriesWhere,
+                        take: Math.ceil(limit / 3),
+                        orderBy: { createdAt: "desc" },
+                        include: {
+                            _count: { select: { episodes: true } },
+                        },
+                    });
+                    seriesResults = rawSeries.map(s => ({
+                        ...s,
+                        type: "series",
+                        thumbnail: formatSeriesThumbnailUrl(s.thumbnail),
+                    }));
+                } catch (seriesError) {
+                    console.error("❌ [Search] Series search error:", seriesError);
+                }
+            }
+
+            const totalItems = musicTotal + videoTotal + seriesTotal;
+            console.log(`🔍 [Search] "${searchQuery}" found ${musicResults.length} music + ${videoResults.length} video + ${seriesResults.length} series`);
 
             return successResponse(`Search results for "${searchQuery}"`, {
                 music: {
@@ -123,7 +153,11 @@ export const searchService = new Elysia({ prefix: "/search" })
                     items: videoResults,
                     total: videoTotal,
                 },
-                combined: [...musicResults, ...videoResults],
+                series: {
+                    items: seriesResults,
+                    total: seriesTotal,
+                },
+                combined: [...musicResults, ...videoResults, ...seriesResults],
             }, createPaginationMeta(totalItems, page, limit));
         } catch (error) {
             console.error("❌ [Search] Error:", error);
@@ -275,5 +309,67 @@ export const searchService = new Elysia({ prefix: "/search" })
             tags: ["Search"],
             summary: "Search video",
             description: "Search video by title or description",
+        },
+    })
+
+    // =====================
+    // SEARCH SERIES ONLY
+    // =====================
+    .get("/series", async ({ query }) => {
+        logRequest("GET", "/search/series", query);
+        try {
+            const searchQuery = query.q || query.search;
+            if (!searchQuery) {
+                return errorResponse("Search query required");
+            }
+
+            const { skip, take, page, limit } = parsePagination({
+                page: Number(query.page),
+                limit: Number(query.limit),
+            });
+
+            const where: any = {
+                OR: [
+                    { title: { contains: searchQuery } },
+                    { description: { contains: searchQuery } },
+                ],
+            };
+
+            if (query.year) {
+                where.start_year = parseInt(query.year, 10);
+            }
+
+            logDbOperation("READ", "Series", `Search: "${searchQuery}"`);
+            const totalItems = await prisma.series.count({ where });
+            const series = await prisma.series.findMany({
+                where, skip, take,
+                orderBy: { createdAt: "desc" },
+                include: {
+                    _count: { select: { episodes: true } },
+                },
+            });
+
+            const transformed = series.map(s => ({
+                ...s,
+                thumbnail: formatSeriesThumbnailUrl(s.thumbnail),
+            }));
+
+            console.log(`🔍 [Search] Series "${searchQuery}" found ${series.length} results`);
+            return successResponse(`Series search results for "${searchQuery}"`, transformed, createPaginationMeta(totalItems, page, limit));
+        } catch (error) {
+            return errorResponse("Search failed", error instanceof Error ? error.message : "Unknown");
+        }
+    }, {
+        query: t.Object({
+            q: t.Optional(t.String()),
+            search: t.Optional(t.String()),
+            page: t.Optional(t.String()),
+            limit: t.Optional(t.String()),
+            year: t.Optional(t.String()),
+        }),
+        detail: {
+            tags: ["Search"],
+            summary: "Search series",
+            description: "Search series by title or description",
         },
     });
