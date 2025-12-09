@@ -54,10 +54,10 @@ export const searchService = new Elysia({ prefix: "/search" })
             if (query.type !== "video") {
                 const musicWhere = {
                     OR: [
-                        { title: { contains: searchQuery, mode: "insensitive" as const } },
-                        { genre: { contains: searchQuery, mode: "insensitive" as const } },
-                        { artist: { name: { contains: searchQuery, mode: "insensitive" as const } } },
-                        { album: { title: { contains: searchQuery, mode: "insensitive" as const } } },
+                        { title: { contains: searchQuery } },
+                        { genre: { contains: searchQuery } },
+                        { artist: { name: { contains: searchQuery } } },
+                        { album: { title: { contains: searchQuery } } },
                     ],
                 };
                 musicTotal = await prisma.music.count({ where: musicWhere });
@@ -86,8 +86,8 @@ export const searchService = new Elysia({ prefix: "/search" })
                 try {
                     const videoWhere = {
                         OR: [
-                            { title: { contains: searchQuery, mode: "insensitive" as const } },
-                            { description: { contains: searchQuery, mode: "insensitive" as const } },
+                            { title: { contains: searchQuery } },
+                            { description: { contains: searchQuery } },
                         ],
                     };
                     videoTotal = await prisma.video.count({ where: videoWhere });
@@ -162,10 +162,10 @@ export const searchService = new Elysia({ prefix: "/search" })
 
             const where: any = {
                 OR: [
-                    { title: { contains: searchQuery, mode: "insensitive" as const } },
-                    { genre: { contains: searchQuery, mode: "insensitive" as const } },
-                    { artist: { name: { contains: searchQuery, mode: "insensitive" as const } } },
-                    { album: { title: { contains: searchQuery, mode: "insensitive" as const } } },
+                    { title: { contains: searchQuery } },
+                    { genre: { contains: searchQuery } },
+                    { artist: { name: { contains: searchQuery } } },
+                    { album: { title: { contains: searchQuery } } },
                 ],
             };
 
@@ -229,8 +229,8 @@ export const searchService = new Elysia({ prefix: "/search" })
 
             const where: any = {
                 OR: [
-                    { title: { contains: searchQuery, mode: "insensitive" as const } },
-                    { description: { contains: searchQuery, mode: "insensitive" as const } },
+                    { title: { contains: searchQuery } },
+                    { description: { contains: searchQuery } },
                 ],
             };
 
