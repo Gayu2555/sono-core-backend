@@ -64,6 +64,84 @@ export const musicService = new Elysia({ prefix: "/music" })
         detail: { tags: ["Music"], summary: "Get all music" },
     })
 
+    // =====================
+    // SEARCH MUSIC
+    // =====================
+    .get("/search", async ({ query }) => {
+        logRequest("GET", "/music/search", query);
+        try {
+            const searchQuery = query.q || query.search;
+            if (!searchQuery) {
+                return errorResponse("Search query required", "Please provide ?q= or ?search= parameter");
+            }
+
+            const { skip, take, page, limit } = parsePagination({
+                page: Number(query.page),
+                limit: Number(query.limit),
+            });
+
+            const where: any = {
+                OR: [
+                    { title: { contains: searchQuery } },
+                    { genre: { contains: searchQuery } },
+                    { artist: { name: { contains: searchQuery } } },
+                    { album: { title: { contains: searchQuery } } },
+                ],
+            };
+
+            // Additional filters
+            if (query.genre) {
+                where.AND = [{ genre: { contains: query.genre } }];
+            }
+            if (query.artistId) {
+                where.artistId = parseInt(query.artistId, 10);
+            }
+            if (query.albumId) {
+                where.albumId = parseInt(query.albumId, 10);
+            }
+
+            logDbOperation("READ", "Music", `Searching: "${searchQuery}"`);
+            const totalItems = await prisma.music.count({ where });
+            const music = await prisma.music.findMany({
+                where, skip, take,
+                orderBy: { createdAt: "desc" },
+                include: {
+                    artist: { select: { id: true, name: true, image: true } },
+                    album: { select: { id: true, title: true, coverImage: true } },
+                    _count: { select: { musicPlays: true } },
+                },
+            });
+
+            // Transform image URLs
+            const transformedMusic = music.map(m => ({
+                ...m,
+                artist: m.artist ? { ...m.artist, image: formatArtistImageUrl(m.artist.image) } : null,
+                album: m.album ? { ...m.album, coverImage: formatAlbumCoverUrl(m.album.coverImage) } : null,
+            }));
+
+            console.log(`🔍 [Music] Search "${searchQuery}" found ${music.length} results`);
+            return successResponse(`Search results for "${searchQuery}"`, transformedMusic, createPaginationMeta(totalItems, page, limit));
+        } catch (error) {
+            console.error("❌ [Music] Search error:", error);
+            return errorResponse("Search failed", error instanceof Error ? error.message : "Unknown");
+        }
+    }, {
+        query: t.Object({
+            q: t.Optional(t.String()),
+            search: t.Optional(t.String()),
+            page: t.Optional(t.String()),
+            limit: t.Optional(t.String()),
+            genre: t.Optional(t.String()),
+            artistId: t.Optional(t.String()),
+            albumId: t.Optional(t.String()),
+        }),
+        detail: {
+            tags: ["Music"],
+            summary: "Search music",
+            description: "Search music by title, artist, album, or genre",
+        },
+    })
+
     .get("/:id", async ({ params }) => {
         logRequest("GET", `/music/${params.id}`);
         const id = parseId(params.id);

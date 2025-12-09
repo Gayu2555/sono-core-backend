@@ -33,6 +33,7 @@ import { seriesService } from "./services/series.service";
 import { episodeService } from "./services/episode.service";
 import { videoStreamService } from "./services/video-stream.service";
 import { musicStreamService } from "./services/music-stream.service";
+import { searchService } from "./services/search.service";
 
 // Import all services - Assets
 import { imageService } from "./services/image.service";
@@ -96,6 +97,7 @@ const app = new Elysia()
           { name: "Episodes", description: "Episode management endpoints" },
           { name: "Streaming", description: "Video streaming endpoints" },
           { name: "Music Streaming", description: "Music streaming with chunk caching" },
+          { name: "Search", description: "Unified search for music and video" },
           { name: "Images", description: "Image upload/get endpoints" },
           { name: "Users", description: "User management endpoints" },
           { name: "Auth", description: "Authentication endpoints (Google OAuth2)" },
@@ -199,6 +201,7 @@ const app = new Elysia()
   .use(episodeService)
   .use(videoStreamService)
   .use(musicStreamService)
+  .use(searchService)
 
   // Use all services - Assets
   .use(imageService)
